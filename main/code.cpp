@@ -118,7 +118,7 @@ bool checklen(string &s, int n)
 bool checkmem(string s)
 {
     int memm = strTOint(s);
-    if (memm && memm < 128)
+    if (memm < 128)
         return true;
     return false;
 }
@@ -236,7 +236,7 @@ int main()
     }
     string lit1, lit2, lit3, val1, val2, val3;
     int program_counter;
-    int LocationCounter = 256;
+    int LocationCounter = 0;
     string s;
     bool flag = false;
     int error_line_no = 0;
@@ -255,10 +255,15 @@ int main()
         }
         //BGC
         if (lit1.compare("BGC") == 0)
-        {
+        {   //BGC 115
             int en = s.size();
             lit2 = slicer(s, 4, en);
             LocationCounter = strTOint(lit2);
+            if (LocationCounter == -1)
+                {
+                    flag = false;
+                    break;
+                }
             if (LocationCounter > 127)
             {
                 flag = false;
@@ -271,7 +276,7 @@ int main()
         }
         //HLT
         else if (lit1.compare("HLT") == 0)
-        {
+        { 
             memory[LocationCounter++] = opcode[lit1];
             if (LocationCounter > 128)
             {
@@ -286,8 +291,8 @@ int main()
             //lit1 has the nature of 2 register , eg and or xor
             //MRR,OAD,OSB,OAN,OOR,OXR,OMD,XCH
             if ((lit1.compare("MRR") == 0 || lit1.compare("OAD") == 0 || lit1.compare("OSB") == 0 || lit1.compare("OAN") == 0 || lit1.compare("OOR") == 0 || lit1.compare("OXR") == 0 || lit1.compare("OMD") == 0 || lit1.compare("XCH") == 0) && s[6] == ' ' && s[3] == ' ' && check_reg_reg(lit1) && s[4] == 'R' && s[7] == 'R' && checkreg(s[5]) && checkreg(s[8]) && checklen(s, 9))
-            { //cout<< s<<" correct memonic"<<endl;//debug
-
+            { //cout<< s<<" correct memonic"<<endl; //debug
+                // XCH R1 R2
                 if (LocationCounter > 124)
                 {
                     flag = false;
@@ -307,6 +312,7 @@ int main()
             //INC,DEC,CLS,CRS,CMN in register
             else if ((lit1.compare("INC") == 0 || lit1.compare("DEC") == 0 || lit1.compare("CLS") == 0 || lit1.compare("CRS") == 0 || lit1.compare("CMN") == 0) && s[4] == 'R' && checkreg(s[5]) && checklen(s, 6) && s[3] == ' ')
             { // cout<< s<<" correct memonic:"<<endl;//debug
+                // INC R1       REGISTER
                 lit2 = slicer(s, 4, 6);
                 val1 = opcode[lit1];
                 if (LocationCounter > 125)
@@ -322,7 +328,7 @@ int main()
             }
             // INC , DEC  in pointers
             else if ((lit1.compare("INC") == 0 || lit1.compare("DEC") == 0) && s[4] == 'P' && checkreg(s[5]) && checklen(s, 6) && s[3] == ' ') // inc dec in ptr
-            {
+            {   // INC P1      POINTER
                 if (LocationCounter > 125)
                 {
                     flag = false;
@@ -338,7 +344,7 @@ int main()
             }
             //MRM
             else if (lit1 == "MRM" && s[4] == 'R' && checkreg(s[5]) && checkmem(slicer(s, 7, len)) && s[3] == ' ' && s[6] == ' ') //MRM R9 9
-            {
+            { // MRM R1 64
                 if (LocationCounter > 124)
                 {
                     flag = false;
@@ -367,6 +373,7 @@ int main()
             //MPR
             else if (lit1 == "MPR" && s[4] == 'P' && s[7] == 'R' && checkreg(s[5]) && checkreg(s[8]) && s[3] == ' ' && s[6] == ' ')
             { // cout<< s<<" correct memonic:"<<endl;//debug
+                // MPR P1 R1
                 if (LocationCounter > 124)
                 {
                     flag = false;
@@ -382,6 +389,7 @@ int main()
             //MRP
             else if (lit1 == "MRP" && s[4] == 'R' && s[7] == 'P' && checkreg(s[5]) && checkreg(s[8]) && s[3] == ' ' && s[6] == ' ')
             { //cout<< s<<" correct memonic:"<<endl;//debug
+                // MRP R1 P1
                 if (LocationCounter > 124)
                 {
                     flag = false;
@@ -404,6 +412,7 @@ int main()
                     break;
                 }
                 //case 1 address huderedth digit
+                // MMR 126 R1
                 if (s[7] == ' ' && s[8] == 'R' && checkreg(s[9]) && checkmem100(slicer(s, 4, 7)) && s[3] == ' ') //MMR 127 R1
                 {                                                                                                //cout<< s<<" correct memonic:"<<endl;//debug
                     lit2 = slicer(s, 4, 7);                                                                      //address
@@ -426,6 +435,7 @@ int main()
                     memory[LocationCounter++] = val3;
                 }
                 //case2  address tens digit
+                //MMR 80 R3
                 else if (s[6] == ' ' && s[7] == 'R' && checkreg(s[8]) && checkmem10(slicer(s, 4, 6)) && s[3] == ' ') //MMR 12 R1
                 {                                                                                                    //cout<< s<<" correct memonic:"<<endl;//debug
                     lit2 = slicer(s, 4, 6);                                                                          //address
@@ -448,6 +458,7 @@ int main()
                     memory[LocationCounter++] = val3;
                 }
                 //case3 adress ones digit
+                //MMR 5 R3
                 else if (s[5] == ' ' && s[6] == 'R' && checkreg(s[7]) && checkmem1(slicer(s, 4, 5)) && s[3] == ' ') //MMR 1 R1
                 {                                                                                                   //cout<< s<<" correct memonic:"<<endl;//debug
                     lit2 = slicer(s, 4, 5);                                                                         //address
@@ -484,9 +495,10 @@ int main()
                     cout << "SEGMENT IS FULL\n";
                     break;
                 }
-                //case 1 MRD R1 -12 //negative valuee   10001010
+                //case 1 MRD R1 -12 //negative valuee   10001100
                 if (s[4] == 'R' && checkreg(s[5]) && s[7] == '-' && checkmem(slicer(s, 8, len)) && s[3] == ' ' && s[6] == ' ')
                 { //cout<< s<<" correct memonic:"<<endl;//debug
+                    //MRD R1 -12
                     lit2 = slicer(s, 4, 6);
                     lit3 = slicer(s, 8, len);
                     val1 = opcode[lit1];
@@ -506,9 +518,10 @@ int main()
                     //val3 = reg[lit3];
                     memory[LocationCounter++] = val3;
                 }
-                //case 2 MRD R1 12 //positve value   00001010
+                //case 2 MRD R1 12 //positve value   00001100
                 else if (s[4] == 'R' && checkreg(s[5]) && checkmem(slicer(s, 7, len)) && s[3] == ' ' && s[6] == ' ')
                 { //cout<< s<<" correct memonic:"<<endl;//debug
+                    // MRD R1 12
                     lit2 = slicer(s, 4, 6);
                     lit3 = slicer(s, 7, len);
                     val1 = opcode[lit1];
@@ -532,6 +545,7 @@ int main()
                 //case 3 MRD P1 12 //pointer   10001010
                 else if (s[4] == 'P' && checkreg(s[5]) && checkmem(slicer(s, 7, len)) && s[3] == ' ' && s[6] == ' ')
                 { //cout<< s<<" correct memonic:"<<endl;//debug
+                     //MRD P1 12 //pointer
                     lit2 = slicer(s, 4, 6);
                     lit3 = slicer(s, 7, len);
                     val1 = opcode[lit1];
@@ -558,8 +572,9 @@ int main()
                 }
             }
             //GTO
-            else if (lit1 == "GTO" && checkmem(slicer(s, 4, len)) && s[3] == ' ')
+           else if (lit1 == "GTO" && checkmem(slicer(s, 4, len)) && s[3] == ' ')
             { //cout<< s<<" correct memonic:"<<endl;//debug
+                //GTO 5
                 if (LocationCounter > 125)
                 {
                     flag = false;
@@ -572,6 +587,7 @@ int main()
                 memory[LocationCounter++] = val1;
 
                 int decimal = strTOint(lit2);
+                decimal = (decimal-1)*3 + program_counter;
                 if (decimal == -1)
                 {
                     flag = false;
@@ -581,6 +597,7 @@ int main()
                 memory[LocationCounter++] = val2;
                 LocationCounter++;
             }
+
             //JIZ
             else if (lit1 == "JIZ")
             {
